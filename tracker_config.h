@@ -14,6 +14,7 @@ class tracker_config{
 		//init from file
 		std::vector<std::string> whitelist_trackers; // download scrape files from another trackers;add them to self
 		
-		
+    public:
+    //todo:
 		
 };

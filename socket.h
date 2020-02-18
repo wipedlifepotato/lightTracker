@@ -30,6 +30,9 @@ class Socket{
 		void setFD(int fd){
 			m_fd=fd;
 		}
+		int getFD(void){
+                return m_fd;
+        }
 		void setFamily(int f){
 			m_family=f;
 		}

@@ -3,15 +3,9 @@
 #include<string>
 
 #include"tracker_server.h"
+#include"tracker_config.h"
 
 
-class tracker_config{
-	private:
-		const std::string defConfPath = std::string("./config.ini");
-	protected:
-		void initConfig(void);
-		void initConfig(std::string);//path
-};
 
 
 

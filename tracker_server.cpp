@@ -3,10 +3,10 @@
 
 void tracker_server::do_work(Socket sock){
  int fd = sock.getFD();
- char buf[1024];
+ //char buf[1024];
  std::string test ="test msg\r\n";
- write(fd, test.c_str(), test.size() );
- read(fd, &buf, sizeof(buf));
+ send_msg(fd, test );
+ auto buf = reading(fd);
  std::cout << buf << std::endl;
 
 }

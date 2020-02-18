@@ -30,9 +30,6 @@ class Socket{
 		void setFD(int fd){
 			m_fd=fd;
 		}
-		int getFD(void){
-                return m_fd;
-        }
 		void setFamily(int f){
 			m_family=f;
 		}
@@ -58,7 +55,7 @@ class Socket{
 	public:
 		void setNonblock(bool nonblock=true);
 		void openSocket(int domain, int type, int protocol);
-		const int & getFD(){
+		const int getFD(){
 			return m_fd;
 		}
 		~Socket(void);	 
@@ -69,11 +66,13 @@ class SocketTalking : public Socket{
 	protected:
 		SocketTalking()=default;
 	public:
-		void write(int fd, std::string msg, int flag=MSG_DONTWAIT){
-			if( send(fd, msg.c_str(), msg.size(), flag) == -1)	
-				Throw::throw_error("Can't send to socket" );
+		void send_msg(int fd, std::string msg){   
+			if( write(fd, msg.c_str(), msg.size()) == -1){
+                perror("socket write");
+				Throw::throw_error("Can't send to socket:",fd );
+            }
 		}
-		std::string read(int fd, std::size_t size=1024, int flag=MSG_DONTWAIT){
+		std::string reading(int fd, std::size_t size=1024, int flag=MSG_DONTWAIT){
 			char buf[size];
 			memset(buf, 0, size);
 			//char * buf = new char[size];
@@ -96,6 +95,6 @@ class Server : public SocketTalking{
 			Server(int domain=AF_INET, int type=SOCK_STREAM, int protocol=0){
 				openSocket(domain, type, protocol);
 			}
-			virtual Socket accepting(void)=0;
-			virtual bool binding ( std::string& , int, unsigned int limit=100 ) = 0;
+			virtual void accepting(void)=0;
+			//virtual bool binding ( std::string& , int, unsigned int  ) = 0;
 };

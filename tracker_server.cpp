@@ -1,19 +1,22 @@
 #include"tracker.h"
 #include"socket.h"
-#include <sys/epoll.h>
 
+void tracker_server::do_work(Socket sock){
+ int fd = sock.getFD();
+ char buf[1024];
+ std::string test ="test msg\r\n";
+ write(fd, test.c_str(), test.size() );
+ read(fd, &buf, sizeof(buf));
+ std::cout << buf << std::endl;
+
+}
 void tracker_server::work_thread(void){
-    for(;;){
-        auto sock = accepting();
-        sock.write("Hello \r\n");
-        if( epoll_ctl(epollfd, EPOLL_CTL_DEL, sock.getFD() ) < 0){
-                std::cerr << "WARNING: Can't delete socket from epoll" << std::endl;
-        }
-        sock.closeConnect();
-    }
+    accepting();
 }
 
-Socket tracker_server::accepting(){
+
+void tracker_server::accepting(){
+        for(;;){
 		struct sockaddr_in addr;
 		socklen_t  clientlen  = sizeof(addr);
 		int newfd;// = accept(m_fd, (sockaddr*)&addr, &clientlen);
@@ -27,34 +30,52 @@ Socket tracker_server::accepting(){
         }
         
         
-        for ( auto n=nfds;n--; ){
+        for ( auto n=0; n< nfds;n++ ){
                 if (events[n].data.fd == m_fd) {
                         newfd=accept(m_fd, (struct sockaddr*)&addr, &clientlen);
                         if(newfd < 0) {
                                 Throw::throw_error("can't accept");
                         }
-                        setnonblocking(newfd);
+                        char ipv4[INET_ADDRSTRLEN];
+                        std::cerr << newfd << std::endl;
+                        inet_ntop(AF_INET, &addr.sin_addr, ipv4, INET_ADDRSTRLEN);
+                        auto port = htons (addr.sin_port);
+
+
+                        conn_sockets[newfd]={ipv4, port };
+                        std::cout << "Connected: " << conn_sockets[newfd].host << ":" << conn_sockets[newfd].port << std::endl;
+
+                        auto flags = fcntl(newfd, F_GETFL, 0);
+                        if(flags < 0) Throw::throw_error("cant get flags of socket");
+                        flags|= O_NONBLOCK;
+                        auto s = fcntl(newfd, F_SETFL, flags);
+                        if(s < 0) Throw::throw_error("cant set flags to socket(O_NONBLOCK)");
+                        
                         ev.events = EPOLLIN | EPOLLET;
                         ev.data.fd = newfd;
                         if( epoll_ctl(epollfd, EPOLL_CTL_ADD, newfd, &ev) < 0 ){
                                 Throw::throw_error("cant add fd to epoll");
                         }
-                        
                 }else{
-                            char ipv4[INET_ADDRSTRLEN];
-                            inet_ntop(AF_INET, &addr.sin_addr, ipv4, INET_ADDRSTRLEN);
+                            int fd = events[n].data.fd;
+                            std::cerr << "FD: " << fd << std::endl;
                             Socket returns;
-                            returns.setHost(ipv4);
-                            returns.setFamily(AF_INET);
-                            returns.setFD(events[n].data.fd);
-                            return m;
+                            returns.setFD(fd);
+                            do_work(returns);
+                           
+                          //  if( epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &ev ) < 0){
+                                    //std::cerr << "WARNING: Can't delete socket from epoll" << std::endl;
+                            //}
+                            close(fd);
+                            conn_sockets[fd].host="";
+                            conn_sockets[fd].port=0;
                 }
         }
 
 		//m.m_fd=newfd;
 		//m.m_family=AF_INET;
 		//m.m_host=ipv4;
-		
+    }
 }
 
 bool tracker_server::binding(std::string host, int port, int limit){
